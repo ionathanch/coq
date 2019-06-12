@@ -9,6 +9,7 @@ Sorts
 Evar
 Context
 Constr
+Stages
 Vars
 Term
 Mod_subst
