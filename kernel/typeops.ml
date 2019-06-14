@@ -505,7 +505,7 @@ let rec execute env stg cstr =
     | App (f,args) ->
       let _, _, args', argst = execute_array env stg args in
       let _, _, f', ft = match kind f with
-            | Ind ind when Environ.template_polymorphic_pind ind env ->
+            | Ind (ind, _) when Environ.template_polymorphic_pind ind env ->
               let args = Array.map (fun t -> lazy t) argst in
         stg, empty_constraint, f, type_of_inductive_knowing_parameters env ind args
             | _ ->
@@ -551,7 +551,8 @@ let rec execute env stg cstr =
       stg, empty_constraint, cstr, t'
 
     (* Inductive types *)
-    | Ind ind ->
+    | Ind (ind, annot) ->
+      assert (annot = Empty); (* We should be doing inference on bare types! *)
       stg, empty_constraint, cstr, type_of_inductive env ind
 
     | Construct c ->
