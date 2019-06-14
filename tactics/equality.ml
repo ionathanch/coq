@@ -367,7 +367,7 @@ let find_elim hdcncl lft2rgt dep cls ot =
     let sort = elimination_sort_of_clause cls gl in
     let c =
       match EConstr.kind sigma hdcncl with 
-      | Ind (ind_sp,u) ->
+      | Ind ((ind_sp,u), _) ->
         begin match lft2rgt, cls with
         | Some true, None
         | Some false, Some _ ->
@@ -410,7 +410,7 @@ let find_elim hdcncl lft2rgt dep cls ot =
     | true, _, false -> rew_r2l_forward_dep_scheme_kind
   in
   match EConstr.kind sigma hdcncl with
-  | Ind (ind,u) -> 
+  | Ind ((ind,u), _) ->
       
       let c, eff = find_scheme scheme_name ind in 
       Proofview.tclEFFECTS eff <*>

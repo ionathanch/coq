@@ -109,7 +109,7 @@ let retype ?(polyprop=true) sigma =
     | Var id -> type_of_var env id
     | Const (cst, u) -> EConstr.of_constr (rename_type_of_constant env (cst, EInstance.kind sigma u))
     | Evar ev -> existential_type sigma ev
-    | Ind (ind, u) -> EConstr.of_constr (rename_type_of_inductive env (ind, EInstance.kind sigma u))
+    | Ind ((ind, u), _) -> EConstr.of_constr (rename_type_of_inductive env (ind, EInstance.kind sigma u))
     | Construct (cstr, u) -> EConstr.of_constr (rename_type_of_constructor env (cstr, EInstance.kind sigma u))
     | Case (_,p,c,lf) ->
         let Inductiveops.IndType(indf,realargs) =
@@ -170,7 +170,7 @@ let retype ?(polyprop=true) sigma =
     let argtyps =
       Array.map (fun c -> lazy (EConstr.to_constr ~abort_on_undefined_evars:false sigma (type_of env c))) args in
     match EConstr.kind sigma c with
-    | Ind (ind, u) ->
+    | Ind ((ind, u), _) ->
       let u = EInstance.kind sigma u in
       let mip = lookup_mind_specif env ind in
 	EConstr.of_constr (try Inductive.type_of_inductive_knowing_parameters
@@ -212,7 +212,7 @@ let type_of_global_reference_knowing_parameters env sigma c args =
 
 let type_of_global_reference_knowing_conclusion env sigma c conclty =
   match EConstr.kind sigma c with
-    | Ind (ind,u) ->
+    | Ind ((ind,u), _) ->
         let spec = Inductive.lookup_mind_specif env ind in
           type_of_inductive_knowing_conclusion env sigma (spec, EInstance.kind sigma u) conclty
     | Const (cst, u) ->

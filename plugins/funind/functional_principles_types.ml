@@ -110,14 +110,14 @@ let compute_new_princ_type_from_rel rel_to_fun sorts princ_type =
   let pre_princ = substl (List.map mkVar ptes_vars) pre_princ in
   let is_dom c =
     match Constr.kind c with
-      | Ind((u,_),_) -> MutInd.equal u rel_as_kn
-      | Construct(((u,_),_),_) -> MutInd.equal u rel_as_kn
+      | Ind (((u,_),_), _) -> MutInd.equal u rel_as_kn
+      | Construct (((u,_),_),_) -> MutInd.equal u rel_as_kn
       | _ -> false
   in
   let get_fun_num c =
     match Constr.kind c with
-      | Ind((_,num),_) -> num
-      | Construct(((_,num),_),_) -> num
+      | Ind (((_,num),_), _) -> num
+      | Construct (((_,num),_),_) -> num
       | _ -> assert false
   in
   let dummy_var = mkVar (Id.of_string "________") in

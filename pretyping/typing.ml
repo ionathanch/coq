@@ -343,7 +343,7 @@ let rec execute env sigma cstr =
         let sigma, ty = type_of_constant env sigma c in
         sigma, make_judge cstr ty
 
-    | Ind ind ->
+    | Ind (ind, _) ->
         let sigma, ty = type_of_inductive env sigma ind in
         sigma, make_judge cstr ty
 
@@ -386,7 +386,7 @@ let rec execute env sigma cstr =
     | App (f,args) ->
         let sigma, jl = execute_array env sigma args in
         (match EConstr.kind sigma f with
-            | Ind (ind, u) when EInstance.is_empty u && Environ.template_polymorphic_ind ind env ->
+            | Ind ((ind, u), _) when EInstance.is_empty u && Environ.template_polymorphic_ind ind env ->
                let sigma, fj = execute env sigma f in
                judge_of_applied_inductive_knowing_parameters env sigma fj (ind, u) jl
             | _ ->

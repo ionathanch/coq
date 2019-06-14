@@ -496,7 +496,7 @@ let mk_clos e t =
     | Var x -> {mark = mark Red Unknown; term = FFlex (VarKey x) }
     | Const c -> {mark = mark Red Unknown; term = FFlex (ConstKey c) }
     | Meta _ | Sort _ ->  {mark = mark Norm KnownR; term = FAtom t }
-    | Ind kn -> {mark = mark Norm KnownR; term = FInd kn }
+    | Ind (kn, _) -> {mark = mark Norm KnownR; term = FInd kn }
     | Construct kn -> {mark = mark Cstr Unknown; term = FConstruct kn }
     | Int i -> {mark = mark Cstr Unknown; term = FInt i}
     | (CoFix _|Lambda _|Fix _|Prod _|Evar _|App _|Case _|Cast _|LetIn _|Proj _) ->
