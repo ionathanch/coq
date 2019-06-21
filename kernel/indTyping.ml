@@ -68,7 +68,7 @@ let mind_check_names mie =
 let check_subtyping_arity_constructor env subst arcn numparams is_arity =
   let numchecked = ref 0 in
   let basic_check ev tp =
-    if !numchecked < numparams then () else Reduction.conv_leq ev tp (subst tp);
+    if !numchecked < numparams then () else let _ = Reduction.conv_leq ev tp (subst tp) in ();
     numchecked := !numchecked + 1
   in
   let check_typ typ typ_env =
