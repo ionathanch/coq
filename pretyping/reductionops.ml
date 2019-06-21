@@ -1422,7 +1422,8 @@ let check_conv ?(pb=Reduction.CUMUL) ?(ts=TransparentState.full) env sigma x y =
     | Reduction.CONV -> f_conv
     | Reduction.CUMUL -> f_conv_leq
   in
-    try f ~reds:ts env ~evars:(safe_evar_value sigma, Evd.universes sigma) x y; true
+    try
+      let _ = f ~reds:ts env ~evars:(safe_evar_value sigma, Evd.universes sigma) x y in true
     with Reduction.NotConvertible -> false
     | Univ.UniverseInconsistency _ -> false
     | e when is_anomaly e -> report_anomaly e
