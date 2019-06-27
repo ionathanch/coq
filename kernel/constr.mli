@@ -12,6 +12,7 @@
     as well as a handful of generic manipulation functions. *)
 
 open Names
+open Stages
 
 (** {6 Simply type aliases } *)
 type pconstant = Constant.t Univ.puniverses
@@ -126,7 +127,7 @@ val mkProj : (Projection.t * constr) -> constr
 (** Constructs the ith (co)inductive type of the block named kn *)
 val mkInd : inductive -> constr
 val mkIndU : pinductive -> constr
-val mkIndUS : pinductive -> Stages.annot -> constr
+val mkIndUS : pinductive -> annot -> constr
 
 (** Constructs the jth constructor of the ith (co)inductive type of the
    block named kn. *)
@@ -228,7 +229,7 @@ type ('constr, 'types, 'sort, 'univs) kind_of_term =
   | Const     of (Constant.t * 'univs)                  (** Gallina-variable that was introduced by Vernacular-command that extends the global environment
                                                           (i.e. [Parameter], or [Axiom], or [Definition], or [Theorem] etc.) *)
 
-  | Ind       of (inductive * 'univs) * Stages.annot  (** A name of an inductive type defined by [Variant], [Inductive] or [Record] Vernacular-commands. *)
+  | Ind       of (inductive * 'univs) * annot         (** A name of an inductive type defined by [Variant], [Inductive] or [Record] Vernacular-commands. *)
   | Construct of (constructor * 'univs)              (** A constructor of an inductive type defined by [Variant], [Inductive] or [Record] Vernacular-commands. *)
   | Case      of case_info * 'constr * 'constr * 'constr array
   | Fix       of ('constr, 'types) pfixpoint
@@ -360,11 +361,13 @@ val equal : constr -> constr -> bool
 
 (** [eq_constr_univs u a b] is [true] if [a] equals [b] modulo alpha, casts,
    application grouping and the universe equalities in [u]. *)
-val eq_constr_univs : UGraph.t -> constr -> constr -> bool Stages.constrained
+val eq_constr_univs : (constraints ref -> Names.inductive -> annot -> annot -> unit) ->
+   UGraph.t -> constr -> constr -> bool constrained
 
 (** [leq_constr_univs u a b] is [true] if [a] is convertible to [b] modulo 
     alpha, casts, application grouping and the universe inequalities in [u]. *)
-val leq_constr_univs : UGraph.t -> constr -> constr -> bool Stages.constrained
+val leq_constr_univs : (constraints ref -> Names.inductive -> annot -> annot -> unit) ->
+   UGraph.t -> constr -> constr -> bool constrained
 
 (** [eq_constr_univs u a b] is [true] if [a] equals [b] modulo alpha, casts,
    application grouping and the universe equalities in [u]. *)
@@ -524,7 +527,7 @@ val erase : constr -> constr
 
 (** [annotate ind s c] annotates all inductive types [ind] in [c] with annotation [s] *)
 
-val annotate : Names.MutInd.t -> Stages.annot -> constr -> constr
+val annotate : Names.MutInd.t -> annot -> constr -> constr
 
 (** [iter f c] iters [f] on the immediate subterms of [c]; it is
    not recursive and the order with which subterms are processed is
@@ -550,8 +553,7 @@ val iter_with_binders :
 val fold_constr_with_binders :
   ('a -> 'a) -> ('a -> 'b -> constr -> 'b) -> 'a -> 'b -> constr -> 'b
 
-type 'constr constr_compare_fn =
-   ?cstrnts: Stages.constraints ref -> int -> 'constr -> 'constr -> bool
+type 'constr constr_compare_fn = int -> 'constr -> 'constr -> bool
 
 (** [compare_head f c1 c2] compare [c1] and [c2] using [f] to compare
    the immediate subterms of [c1] of [c2] if needed; Cast's, binders
