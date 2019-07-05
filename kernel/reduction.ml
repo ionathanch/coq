@@ -186,13 +186,13 @@ let whd_allnolet env t =
 (* Conversion utility functions *)
 
 (* functions of this type are called from the kernel *)
-type 'a kernel_conversion_function = env -> 'a -> 'a -> constraints
+type 'a kernel_conversion_function = env -> 'a -> 'a -> Constraints.t
 
 (* functions of this type can be called from outside the kernel *)
 type 'a extended_conversion_function =
   ?l2r:bool -> ?reds:TransparentState.t -> env ->
   ?evars:((existential->constr option) * UGraph.t) ->
-  'a -> 'a -> constraints
+  'a -> 'a -> Constraints.t
 
 exception NotConvertible
 
@@ -220,7 +220,7 @@ type 'a universe_compare =
 
 type 'a universe_state = 'a * 'a universe_compare
 
-type ('a,'b) generic_conversion_function = env -> 'b universe_state -> 'a -> 'a -> 'b Stages.constrained
+type ('a,'b) generic_conversion_function = env -> 'b universe_state -> 'a -> 'a -> 'b Constraints.constrained
 
 type 'a infer_conversion_function = env -> UGraph.t -> 'a -> 'a -> Univ.Constraint.t
 
@@ -701,7 +701,7 @@ and convert_branches compare_annot l2r infos ci e1 e2 lft1 lft2 br1 br2 cuniv =
   Array.fold_right3 fold ci.ci_cstr_nargs br1 br2 cuniv
 
 let clos_gen_conv trans cv_pb l2r evars env univs t1 t2 =
-  let cstrnts = ref empty_constraint in
+  let cstrnts = ref Constraints.empty in
   let reds = CClosure.RedFlags.red_add_transparent betaiotazeta trans in
   let infos = create_clos_infos ~evars reds env in
   let infos = {
