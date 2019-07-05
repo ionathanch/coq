@@ -63,6 +63,7 @@ type ('constr, 'types) ptype_error =
   | IllFormedRecBody of 'constr pguard_error * Name.t Context.binder_annot array * int * env * ('constr, 'types) punsafe_judgment array
   | IllTypedRecBody of
       int * Name.t Context.binder_annot array * ('constr, 'types) punsafe_judgment array * 'types array
+  | UnsatisfiedStageConstraints of Stages.Constraints.t * Stages.State.vars * Stages.State.vars
   | UnsatisfiedConstraints of Univ.Constraint.t
   | UndeclaredUniverse of Univ.Level.t
   | DisallowedSProp
@@ -146,6 +147,9 @@ let error_elim_explain kp ki =
   | InType, InSet -> StrongEliminationOnNonSmallType (* if Set impredicative *)
   | _ -> WrongArity
 
+let error_unsatisfied_stage_constraints env cstrnts si_inf si =
+  raise (TypeError (env, UnsatisfiedStageConstraints (cstrnts, si_inf, si)))
+
 let error_unsatisfied_constraints env c =
   raise (TypeError (env, UnsatisfiedConstraints c))
 
@@ -197,6 +201,8 @@ let map_ptype_error f = function
   IllFormedRecBody (map_pguard_error f ge, na, n, env, Array.map (on_judgment f) jv)
 | IllTypedRecBody (n, na, jv, t) ->
   IllTypedRecBody (n, na, Array.map (on_judgment f) jv, Array.map f t)
+| UnsatisfiedStageConstraints (cstrnts, si_inf, si) ->
+  UnsatisfiedStageConstraints (cstrnts, si_inf, si)
 | UnsatisfiedConstraints g -> UnsatisfiedConstraints g
 | UndeclaredUniverse l -> UndeclaredUniverse l
 | DisallowedSProp -> DisallowedSProp
