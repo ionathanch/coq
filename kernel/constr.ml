@@ -32,7 +32,6 @@ open Context
 open Stages
 open Stage
 open Annot
-open State
 open Constraints
 
 type existential_key = Evar.t
@@ -827,7 +826,7 @@ let succ_annots vars =
   let f iu a c =
     match a with
     | Stage (StageVar (na, _))
-      when mem na vars ->
+      when SVars.mem na vars ->
       mkIndUS iu (hat a)
     | _ -> c in
   modify_annots f
@@ -836,7 +835,7 @@ let pos_annots vars =
   let f iu a c =
     match a with
     | Stage (StageVar (na, _))
-      when mem na vars ->
+      when SVars.mem na vars ->
       mkIndUS iu Star
     | _ -> c in
   modify_annots f
