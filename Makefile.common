@@ -103,7 +103,7 @@ PLUGINDIRS:=\
   setoid_ring 	extraction \
   cc 		funind 		firstorder 	derive \
   rtauto 	nsatz           syntax          btauto \
-  ssrmatching	ltac		ssr
+  sized_typing   ssrmatching	ltac		ssr
 
 USERCONTRIBDIRS:=\
 	Ltac2
@@ -152,6 +152,7 @@ SYNTAXCMO:=$(addprefix plugins/syntax/, \
 	string_notation_plugin.cmo)
 DERIVECMO:=plugins/derive/derive_plugin.cmo
 LTACCMO:=plugins/ltac/ltac_plugin.cmo plugins/ltac/tauto_plugin.cmo
+SIZEDTYPINGCMO:=plugins/sized_typing/sized_typing_plugin.cmo
 SSRMATCHINGCMO:=plugins/ssrmatching/ssrmatching_plugin.cmo
 SSRCMO:=plugins/ssr/ssreflect_plugin.cmo
 LTAC2CMO:=user-contrib/Ltac2/ltac2_plugin.cmo
@@ -161,7 +162,7 @@ PLUGINSCMO:=$(LTACCMO) $(OMEGACMO) $(MICROMEGACMO) \
         $(EXTRACTIONCMO) \
         $(CCCMO)  $(FOCMO) $(RTAUTOCMO) $(BTAUTOCMO) \
         $(FUNINDCMO) $(NSATZCMO) $(SYNTAXCMO) \
-	$(DERIVECMO) $(SSRMATCHINGCMO) $(SSRCMO) $(LTAC2CMO)
+	$(DERIVECMO) $(SIZEDTYPINGCMO) $(SSRMATCHINGCMO) $(SSRCMO) $(LTAC2CMO)
 
 ifeq ($(HASNATDYNLINK)-$(BEST),false-opt)
  STATICPLUGINS:=$(PLUGINSCMO)
