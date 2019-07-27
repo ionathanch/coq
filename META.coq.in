@@ -494,7 +494,7 @@ package "plugins" (
     archive(native)  = "ssreflect_plugin.cmx"
   )
 
-  package "sized_typing" {
+  package "sized_typing" (
 
     description = "Coq sized typing plugin"
     version     = "8.10"
@@ -504,5 +504,5 @@ package "plugins" (
 
     archive(byte)   = "sized_typing_plugin.cmo"
     archive(native) = "sized_typing_plugin.cmx"
-  }
+  )
 )
