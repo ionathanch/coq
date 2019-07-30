@@ -206,6 +206,7 @@ let infer_declaration (type a) ~(trust : a trust) env (dcl : a constant_entry) =
            let _ = Typeops.judge_of_cast env j DEFAULTcast tj in
            Vars.subst_univs_level_constr usubst tj.utj_val
       in
+      let typ = Inductive.globify env j.uj_type typ in
       let def = Vars.subst_univs_level_constr usubst j.uj_val in
       let def = Def (Mod_subst.from_val def) in
 	feedback_completion_typecheck feedback_id;
