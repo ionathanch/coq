@@ -611,8 +611,8 @@ let rec pretype ~program_mode ~poly resolve_tc (tycon : type_constraint) (env : 
             An earlier approach was to look only for inductive arguments,
             but doing it properly involves delta-reduction, and it finally
             doesn't seem worth the effort (except for huge mutual fixpoints ?) *)
-                let possible_indexes =
-                  Array.to_list (Array.mapi
+          let possible_indexes =
+            Array.to_list (Array.mapi
               (fun i annot -> match annot with
                 | Some n -> [n]
                 | None -> List.map_i (fun i _ -> i) 0 ctxtv.(i))
