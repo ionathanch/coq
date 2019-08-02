@@ -571,9 +571,9 @@ let rec pretype ~program_mode ~poly resolve_tc (tycon : type_constraint) (env : 
     let sigma =
       match tycon with
       | Some t ->
- 	let fixi = match fixkind with
-	  | GFix (vn,i) -> i
-	  | GCoFix i -> i
+              let fixi = match fixkind with
+                | GFix (vn,i) -> i
+                | GCoFix i -> i
         in
         begin match Evarconv.unify_delay !!env sigma ftys.(fixi) t with
           | exception Evarconv.UnableToUnify _ -> sigma
@@ -605,34 +605,36 @@ let rec pretype ~program_mode ~poly resolve_tc (tycon : type_constraint) (env : 
       let ftys = Array.map nf ftys in (* FIXME *)
       let fdefs = Array.map (fun x -> nf (j_val x)) vdefj in
       let fixj = match fixkind with
-	| GFix (vn,i) ->
-	      (* First, let's find the guard indexes. *)
-	      (* If recursive argument was not given by user, we try all args.
-	         An earlier approach was to look only for inductive arguments,
-		 but doing it properly involves delta-reduction, and it finally
-                 doesn't seem worth the effort (except for huge mutual
-		 fixpoints ?) *)
-	  let possible_indexes =
-	    Array.to_list (Array.mapi
-                             (fun i annot -> match annot with
-			     | Some n -> [n]
-			     | None -> List.map_i (fun i _ -> i) 0 ctxtv.(i))
-           vn)
-	  in
+        | GFix (vn,i) ->
+          (* First, let's find the guard indexes. *)
+          (* If recursive argument was not given by user, we try all args.
+            An earlier approach was to look only for inductive arguments,
+            but doing it properly involves delta-reduction, and it finally
+            doesn't seem worth the effort (except for huge mutual fixpoints ?) *)
+                let possible_indexes =
+                  Array.to_list (Array.mapi
+              (fun i annot -> match annot with
+                | Some n -> [n]
+                | None -> List.map_i (fun i _ -> i) 0 ctxtv.(i))
+              vn) in
           let fixdecls = (names,ftys,fdefs) in
-          let indexes = esearch_guard ?loc !!env sigma possible_indexes fixdecls in
-          make_judge (mkFixOpt ((indexes,i),fixdecls)) ftys.(i)
+          let indexes = if (typing_flags !!env).Declarations.check_guarded then
+            Array.map (fun i -> Some i) @@ esearch_guard ?loc !!env sigma possible_indexes fixdecls
+            else vn in
+          make_judge (mkFix ((indexes,i),fixdecls)) ftys.(i)
         | GCoFix i ->
           let fixdecls = (names,ftys,fdefs) in
-	  let cofix = (i, fixdecls) in
-            (try check_cofix !!env (i, nf_fix sigma fixdecls)
-             with reraise ->
-               let (e, info) = CErrors.push reraise in
-               let info = Option.cata (Loc.add_loc info) info loc in
-               iraise (e, info));
-	    make_judge (mkCoFix cofix) ftys.(i)
-      in
-      inh_conv_coerce_to_tycon ?loc env sigma fixj tycon
+          let cofix = (i, fixdecls) in
+          begin
+          try check_cofix !!env (i, nf_fix sigma fixdecls);
+          with reraise ->
+            let (e, info) = CErrors.push reraise in
+            let info = Option.cata (Loc.add_loc info) info loc in
+            iraise (e, info)
+          end;
+          make_judge (mkCoFix cofix) ftys.(i)
+    in
+    inh_conv_coerce_to_tycon ?loc env sigma fixj tycon
 
   | GSort s ->
     let sigma, j = pretype_sort ?loc sigma s in
