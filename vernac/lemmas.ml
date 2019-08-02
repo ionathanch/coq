@@ -392,7 +392,7 @@ let adjust_guardness_conditions const = function
              | Fix ((nv,0),(_,_,fixdefs as fixdecls)) ->
                let env = Safe_typing.push_private_constants env eff.Evd.seff_private in
                let indexes = search_guard env possible_indexes fixdecls in
-               (mkFix ((indexes,0),fixdecls), ctx), eff
+               (mkFixOpt ((indexes,0),fixdecls), ctx), eff
              | _ -> (body, ctx), eff)
     }
 
