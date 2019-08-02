@@ -1150,7 +1150,7 @@ let get_funs_constant mp =
       try
         let extract_info is_first body =
           match Constr.kind body with
-            | Fix((idxs,_),(na,ta,ca)) -> (idxs,na,ta,ca)
+            | Fix((idxs,_),(na,ta,ca)) -> (Array.map Option.get idxs,na,ta,ca)
             | _ ->
                 if is_first && Int.equal (List.length l_bodies) 1
                 then raise Not_Rec

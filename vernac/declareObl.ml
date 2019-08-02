@@ -421,7 +421,7 @@ let declare_mutual_definition l =
         Pretyping.search_guard (Global.env ()) possible_indexes fixdecls
       in
       ( Some indexes
-      , List.map_i (fun i _ -> mk_proof (mkFix ((indexes, i), fixdecls))) 0 l
+      , List.map_i (fun i _ -> mk_proof (mkFixOpt ((indexes, i), fixdecls))) 0 l
       )
     | IsCoFixpoint ->
       (None, List.map_i (fun i _ -> mk_proof (mkCoFix (i, fixdecls))) 0 l)

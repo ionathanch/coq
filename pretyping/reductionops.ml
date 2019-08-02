@@ -826,9 +826,11 @@ let reduce_and_refold_fix recfun env sigma refold cst_l fix sk =
 
 let fix_recarg ((recindices,bodynum),_) stack =
   assert (0 <= bodynum && bodynum < Array.length recindices);
-  let recargnum = Array.get recindices bodynum in
+  let recargnumopt = Array.get recindices bodynum in
   try
-    Some (recargnum, Stack.nth stack recargnum)
+    match recargnumopt with
+    | Some recargnum -> Some (recargnum, Stack.nth stack recargnum)
+    | None -> None
   with Not_found ->
     None
 
@@ -1079,10 +1081,17 @@ let rec whd_state_gen ?csts ~refold ~tactic_mode flags env sigma =
       whrec Cst_stack.empty (d, Stack.Case (ci,p,lf,cst_l) :: stack)
 
     | Fix ((ri,n),_ as f) ->
-      (match Stack.strip_n_app ri.(n) stack with
-      |None -> fold ()
-      |Some (bef,arg,s') ->
-	whrec Cst_stack.empty (arg, Stack.Fix(f,bef,cst_l)::s'))
+      begin
+      match ri.(n) with
+      | Some i ->
+        begin
+        match Stack.strip_n_app i stack with
+        | None -> fold ()
+        | Some (bef,arg,s') ->
+          whrec Cst_stack.empty (arg, Stack.Fix(f,bef,cst_l)::s')
+        end
+      | None -> fold ()
+      end
 
     | Construct ((ind,c),u) ->
       let use_match = CClosure.RedFlags.red_set flags CClosure.RedFlags.fMATCH in
@@ -1203,9 +1212,16 @@ let local_whd_state_gen flags sigma =
       whrec (d, Stack.Case (ci,p,lf,Cst_stack.empty) :: stack)
 
     | Fix ((ri,n),_ as f) ->
-      (match Stack.strip_n_app ri.(n) stack with
-      |None -> s
-      |Some (bef,arg,s') -> whrec (arg, Stack.Fix(f,bef,Cst_stack.empty)::s'))
+      begin
+      match ri.(n) with
+      | Some i ->
+        begin
+        match Stack.strip_n_app i stack with
+        | None -> s
+        | Some (bef,arg,s') -> whrec (arg, Stack.Fix(f,bef,Cst_stack.empty)::s')
+        end
+      | None -> s
+      end
 
     | Evar ev -> s
     | Meta ev ->
