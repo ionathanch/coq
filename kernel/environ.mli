@@ -47,7 +47,7 @@ type constant_key = Opaqueproof.opaque constant_body * (link_info ref * key)
 type mind_key = mutual_inductive_body * link_info ref
 
 type globals
-(** globals = constants + projections + inductive types + modules + module-types *)
+(** globals = constants + projections + inductive types + modules + module-types + stage annotations state *)
 
 type stratification = {
   env_universes : UGraph.t;
@@ -265,6 +265,10 @@ val shallow_add_module : module_body -> env -> env
 
 val lookup_module : ModPath.t -> env -> module_body
 val lookup_modtype : ModPath.t -> env -> module_type_body
+
+(** {5 Stage state } *)
+val get_stage_state : env -> Stages.State.t
+val next_stage_annot : env -> Stages.Annot.t * env
 
 (** {5 Universe constraints } *)
 
