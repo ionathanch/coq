@@ -55,7 +55,6 @@ type globals = {
   env_inductives : mind_key Mindmap_env.t;
   env_modules : module_body MPmap.t;
   env_modtypes : module_type_body MPmap.t;
-  mutable env_stage_state : Stages.State.t;
 }
 
 type stratification = {
@@ -114,8 +113,7 @@ let empty_env = {
     env_constants = Cmap_env.empty;
     env_inductives = Mindmap_env.empty;
     env_modules = MPmap.empty;
-    env_modtypes = MPmap.empty;
-    env_stage_state = Stages.State.init};
+    env_modtypes = MPmap.empty};
   env_named_context = empty_named_context_val;
   env_rel_context = empty_rel_context_val;
   env_nb_rel = 0;
@@ -239,14 +237,6 @@ let mind_context env mind =
 
 let lookup_mind_key kn env =
   Mindmap_env.find kn env.env_globals.env_inductives
-
-(* Stage state *)
-let get_stage_state env =
-  env.env_globals.env_stage_state
-
-let next_stage_annot env =
-  let s, stg = Stages.State.next (env.env_globals.env_stage_state) in
-  env.env_globals.env_stage_state <- stg; s
 
 let oracle env = env.env_typing_flags.conv_oracle
 let set_oracle env o =
