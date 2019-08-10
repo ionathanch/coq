@@ -59,7 +59,7 @@ let rec relevance_of_fterm env extra lft f =
     let r = match fterm_of f with
       | FRel n -> relevance_of_rel_extra env extra (Esubst.reloc_rel n lft)
       | FAtom c -> relevance_of_term_extra env extra lft (Esubst.subs_id 0) c
-      | FFlex key -> relevance_of_flex env extra lft key
+      | FFlex (key, _) -> relevance_of_flex env extra lft key
       | FInt _ -> Sorts.Relevant
       | FInd _ | FProd _ -> Sorts.Relevant (* types are always relevant *)
       | FConstruct (c,_) -> relevance_of_constructor env c
@@ -86,7 +86,7 @@ let rec relevance_of_fterm env extra lft f =
 
 and relevance_of_term_extra env extra lft subs c =
   match kind c with
-  | Rel n ->
+  | Rel (n, _) ->
     (match Esubst.expand_rel n subs with
      | Inl (k, f) -> relevance_of_fterm env extra (Esubst.el_liftn k lft) f
      | Inr (n, _) -> relevance_of_rel_extra env extra (Esubst.reloc_rel n lft))

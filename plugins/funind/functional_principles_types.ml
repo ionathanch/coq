@@ -131,7 +131,7 @@ let compute_new_princ_type_from_rel rel_to_fun sorts princ_type =
   let rec compute_new_princ_type remove env pre_princ : types*(constr list) =
     let (new_princ_type,_) as res =
       match Constr.kind pre_princ with
-        | Rel n ->
+        | Rel (n, _) ->
             begin
               try match Environ.lookup_rel n env with
                 | LocalAssum (_,t) | LocalDef (_,_,t) when is_dom t -> raise Toberemoved
