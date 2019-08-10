@@ -194,7 +194,7 @@ let build_beq_scheme mode kn =
         let (c,a) = Reductionops.whd_betaiota_stack Evd.empty EConstr.(of_constr c) in
         let (c,a) = EConstr.Unsafe.(to_constr c, List.map to_constr a) in
         match Constr.kind c with
-        | Rel x -> mkRel (x-nlist+ndx), Evd.empty_side_effects
+        | Rel (x, ans) -> mkRelAnnots (x-nlist+ndx) ans, Evd.empty_side_effects
         | Var x ->
           (* Support for working in a context with "eq_x : x -> x -> bool" *)
           let eid = Id.of_string ("eq_"^(Id.to_string x)) in

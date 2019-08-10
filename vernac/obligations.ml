@@ -90,7 +90,7 @@ let subst_evar_constr evm evs n idf t =
 	in
 	  if List.exists
             (fun x -> match EConstr.kind evm x with
-            | Rel n -> Int.List.mem n fixrels
+            | Rel (n, _) -> Int.List.mem n fixrels
             | _ -> false) args
           then
 	    transparent := Id.Set.add idstr !transparent;

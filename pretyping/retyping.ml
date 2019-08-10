@@ -103,7 +103,7 @@ let retype ?(polyprop=true) sigma =
     | Meta n ->
       (try strip_outer_cast sigma (Evd.meta_ftype sigma n).Evd.rebus
        with Not_found -> retype_error (BadMeta n))
-    | Rel n ->
+    | Rel (n, _) ->
 	let ty = RelDecl.get_type (lookup_rel n env) in
         lift n ty
     | Var id -> type_of_var env id
@@ -263,7 +263,7 @@ let relevance_of_term env sigma c =
   if Environ.sprop_allowed env then
     let rec aux rels c =
       match kind sigma c with
-      | Rel n -> Retypeops.relevance_of_rel_extra env rels n
+      | Rel (n, _) -> Retypeops.relevance_of_rel_extra env rels n
       | Var x -> Retypeops.relevance_of_var env x
       | Sort _ -> Sorts.Relevant
       | Cast (c, _, _) -> aux rels c
