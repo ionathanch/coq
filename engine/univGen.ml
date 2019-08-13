@@ -84,7 +84,7 @@ let fresh_global_or_constr_instance env = function
 
 let global_of_constr c =
   match kind c with
-  | Const (c, u) -> GlobRef.ConstRef c, u
+  | Const ((c, u), _) -> GlobRef.ConstRef c, u
   | Ind ((i, u), _) -> GlobRef.IndRef i, u
   | Construct (c, u) -> GlobRef.ConstructRef c, u
   | Var id -> GlobRef.VarRef id, Instance.empty

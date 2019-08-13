@@ -50,7 +50,7 @@ let head_constr_bound sigma t =
   let hd,args = decompose_app sigma ccl in
   let open GlobRef in
   match EConstr.kind sigma hd with
-  | Const (c, _) -> ConstRef c
+  | Const ((c, _), _) -> ConstRef c
   | Ind ((i, _), _) -> IndRef i
   | Construct (c, _) -> ConstructRef c
   | Var id -> VarRef id
@@ -68,7 +68,7 @@ let decompose_app_bound sigma t =
   let hd,args = decompose_app_vect sigma ccl in
   let open GlobRef in
   match EConstr.kind sigma hd with
-    | Const (c,u) -> ConstRef c, args
+    | Const ((c,u), _) -> ConstRef c, args
     | Ind ((i,u), _) -> IndRef i, args
     | Construct (c,u) -> ConstructRef c, args
     | Var id -> VarRef id, args
@@ -306,7 +306,7 @@ let strip_params env sigma c =
   match EConstr.kind sigma c with
   | App (f, args) -> 
     (match EConstr.kind sigma f with
-    | Const (cst,_) ->
+    | Const ((cst,_), _) ->
       (match Recordops.find_primitive_projection cst with
        | Some p ->
          let p = Projection.make p false in

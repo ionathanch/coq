@@ -708,7 +708,7 @@ let build_proof
                         }
                       in
                       build_proof_args env sigma do_finalize new_infos  g
-                  | Const (c,_) when not (List.mem_f Constant.equal c fnames) ->
+                  | Const ((c,_), _) when not (List.mem_f Constant.equal c fnames) ->
                       let new_infos =
                         { dyn_infos with
                             info = (f,args)

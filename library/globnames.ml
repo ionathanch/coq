@@ -67,7 +67,7 @@ let canonical_gr = function
   | VarRef id -> VarRef id
 
 let global_of_constr c = match kind c with
-  | Const (sp,u) -> ConstRef sp
+  | Const ((sp,u), _) -> ConstRef sp
   | Ind ((ind_sp,u), _) -> IndRef ind_sp
   | Construct (cstr_cp,u) -> ConstructRef cstr_cp
   | Var id -> VarRef id
@@ -75,7 +75,7 @@ let global_of_constr c = match kind c with
 
 let is_global c t =
   match c, kind t with
-  | ConstRef c, Const (c', _) -> Constant.equal c c'
+  | ConstRef c, Const ((c', _), _) -> Constant.equal c c'
   | IndRef i, Ind ((i', _), _) -> eq_ind i i'
   | ConstructRef i, Construct (i', _) -> eq_constructor i i'
   | VarRef id, Var id' -> Id.equal id id'
