@@ -675,7 +675,7 @@ let rec pretype ~program_mode ~poly resolve_tc (tycon : type_constraint) (env : 
     in
     let app_f = 
       match EConstr.kind sigma fj.uj_val with
-      | Const (p, u) when Recordops.is_primitive_projection p ->
+      | Const ((p, u), _) when Recordops.is_primitive_projection p ->
         let p = Option.get @@ Recordops.find_primitive_projection p in
         let p = Projection.make p false in
         let npars = Projection.npars p in

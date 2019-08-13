@@ -824,7 +824,7 @@ struct
            | App(t,args) ->
                (
                  match EConstr.kind gl.sigma t with
-                   | Const c ->
+                   | Const (c, _) ->
                        ( match assoc_ops gl.sigma t ops_spec  with
 			   | Binop f -> combine env f (args.(0),args.(1))
                            | Opp     -> let (expr,env) = parse_expr env args.(0) in
@@ -934,7 +934,7 @@ struct
 
     let rec rconstant term =
       match EConstr.kind sigma term with
-      | Const x ->
+      | Const (x, _) ->
          if EConstr.eq_constr sigma term (Lazy.force coq_R0)
          then Mc.C0
         else if EConstr.eq_constr sigma term (Lazy.force coq_R1)

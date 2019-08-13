@@ -286,7 +286,7 @@ let constr_display csr =
       ^(term_display t)^","^(term_display c)^")"
   | App (c,l) -> "App("^(term_display c)^","^(array_display l)^")\n"
   | Evar (e,l) -> "Evar("^(Pp.string_of_ppcmds (Evar.print e))^","^(array_display l)^")"
-  | Const (c,u) -> "Const("^(Constant.to_string c)^","^(universes_display u)^")"
+  | Const ((c,u), _) -> "Const("^(Constant.to_string c)^","^(universes_display u)^")"
   | Ind (((sp,i),u), stg) ->
       "MutInd("^(MutInd.to_string sp)^","^(string_of_int i)^","^(universes_display u)^","^(Stages.Annot.show stg)^")"
   | Construct (((sp,i),j),u) ->
@@ -383,7 +383,7 @@ let print_pure_constr csr =
   | Evar (e,l) -> print_string "Evar#"; print_int (Evar.repr e); print_string "{";
       Array.iter (fun x -> print_space (); box_display x) l;
       print_string"}"
-  | Const (c,u) -> print_string "Cons(";
+  | Const ((c,u), _) -> print_string "Cons(";
       sp_con_display c;
       print_string ","; universes_display u;
       print_string ")"

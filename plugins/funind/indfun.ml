@@ -49,7 +49,7 @@ let functional_induction with_clean c princl pat =
     | None -> (* No principle is given let's find the good one *)
       begin
         match EConstr.kind sigma f with
-        | Const (c',u) ->
+        | Const ((c',u), _) ->
           let princ_option =
             let finfo = (* we first try to find out a graph on f *)
               match find_Function_infos c' with
