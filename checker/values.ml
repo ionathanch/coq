@@ -133,7 +133,7 @@ let v_proj = v_tuple "projection" [|v_proj_repr; v_bool|]
 let rec v_constr =
   Sum ("constr",0,[|
     [|Int;v_annots Any|]; (* Rel *)
-    [|v_id|]; (* Var *)
+    [|v_id;v_annots Any|]; (* Var *)
     [|Fail "Meta"|]; (* Meta *)
     [|Fail "Evar"|]; (* Evar *)
     [|v_sort|]; (* Sort *)

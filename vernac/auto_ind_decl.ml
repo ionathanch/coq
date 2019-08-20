@@ -195,7 +195,7 @@ let build_beq_scheme mode kn =
         let (c,a) = EConstr.Unsafe.(to_constr c, List.map to_constr a) in
         match Constr.kind c with
         | Rel (x, ans) -> mkRelA (x-nlist+ndx) ans, Evd.empty_side_effects
-        | Var x ->
+        | Var (x, _) ->
           (* Support for working in a context with "eq_x : x -> x -> bool" *)
           let eid = Id.of_string ("eq_"^(Id.to_string x)) in
           let () =
@@ -374,7 +374,7 @@ let do_replace_lb mode lb_scheme_key aavoid narg p q =
   let avoid = Array.of_list aavoid in
   let do_arg sigma hd v offset =
     match kind sigma v with
-    | Var s ->
+    | Var (s, _) ->
     let x = narg*offset in
     let n = Array.length avoid in
     let rec find i =
@@ -434,7 +434,7 @@ let do_replace_bl mode bl_scheme_key (ind,u as indu) aavoid narg lft rgt =
   let avoid = Array.of_list aavoid in
   let do_arg sigma hd v offset =
     match kind sigma v with
-    | Var s ->
+    | Var (s, _) ->
     let x = narg*offset in
     let n = Array.length avoid in
     let rec find i =

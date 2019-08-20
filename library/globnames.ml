@@ -70,7 +70,7 @@ let global_of_constr c = match kind c with
   | Const ((sp,u), _) -> ConstRef sp
   | Ind ((ind_sp,u), _) -> IndRef ind_sp
   | Construct (cstr_cp,u) -> ConstructRef cstr_cp
-  | Var id -> VarRef id
+  | Var (id, _) -> VarRef id
   |  _ -> raise Not_found
 
 let is_global c t =
@@ -78,7 +78,7 @@ let is_global c t =
   | ConstRef c, Const ((c', _), _) -> Constant.equal c c'
   | IndRef i, Ind ((i', _), _) -> eq_ind i i'
   | ConstructRef i, Construct (i', _) -> eq_constructor i i'
-  | VarRef id, Var id' -> Id.equal id id'
+  | VarRef id, Var (id', _) -> Id.equal id id'
   | _ -> false
 
 let printable_constr_of_global = function

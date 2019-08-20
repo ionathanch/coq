@@ -87,7 +87,7 @@ let global_of_constr c =
   | Const ((c, u), _) -> GlobRef.ConstRef c, u
   | Ind ((i, u), _) -> GlobRef.IndRef i, u
   | Construct (c, u) -> GlobRef.ConstructRef c, u
-  | Var id -> GlobRef.VarRef id, Instance.empty
+  | Var (id, _) -> GlobRef.VarRef id, Instance.empty
   | _ -> raise Not_found
 
 let fresh_sort_in_family = function

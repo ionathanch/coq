@@ -90,7 +90,7 @@ let compute_new_princ_type_from_rel rel_to_fun sorts princ_type =
     let set = List.fold_right Id.Set.add ptes_vars Id.Set.empty in
     fun t ->
       match Constr.kind t with
-        | Var id -> Id.Set.mem id set
+        | Var (id, _) -> Id.Set.mem id set
         | _ -> false
   in
   let pre_princ =

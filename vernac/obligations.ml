@@ -108,7 +108,7 @@ let subst_evar_constr evm evs n idf t =
 let subst_vars acc n t =
   let var_index id = Util.List.index Id.equal id acc in
   let rec substrec depth c = match Constr.kind c with
-    | Var v -> (try mkRel (depth + (var_index v)) with Not_found -> c)
+    | Var (v, ans) -> (try mkRelA (depth + (var_index v)) ans with Not_found -> c)
     | _ -> Constr.map_with_binders succ substrec depth c
   in
     substrec 0 t
