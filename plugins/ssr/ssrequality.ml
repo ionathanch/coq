@@ -198,7 +198,7 @@ let simplintac occ rdx sim gl =
   | _ -> simpltac sim gl
 
 let rec get_evalref env sigma c = match EConstr.kind sigma c with
-  | Var id -> EvalVarRef id
+  | Var (id, _) -> EvalVarRef id
   | Const ((k,_), _) -> EvalConstRef k
   | App (c', _) -> get_evalref env sigma c'
   | Cast (c', _, _) -> get_evalref env sigma c'

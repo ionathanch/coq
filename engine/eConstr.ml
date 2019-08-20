@@ -53,7 +53,7 @@ let mkProp = of_kind (Sort (ESorts.make Sorts.prop))
 let mkSet = of_kind (Sort (ESorts.make Sorts.set))
 let mkType u = of_kind (Sort (ESorts.make (Sorts.sort_of_univ u)))
 let mkRel n = of_kind (Rel (n, None))
-let mkVar id = of_kind (Var id)
+let mkVar id = of_kind (Var (id, None))
 let mkMeta n = of_kind (Meta n)
 let mkEvar e = of_kind (Evar e)
 let mkSort s = of_kind (Sort (ESorts.make s))
@@ -115,7 +115,7 @@ let rec isType sigma c = match kind sigma c with
   | _ -> false
 
 let isVarId sigma id c =
-  match kind sigma c with Var id' -> Id.equal id id' | _ -> false
+  match kind sigma c with Var (id', _) -> Id.equal id id' | _ -> false
 let isRelN sigma n c =
   match kind sigma c with Rel (n', _) -> Int.equal n n' | _ -> false
 
@@ -124,7 +124,7 @@ let destRel sigma c = match kind sigma c with
 | _ -> raise DestKO
 
 let destVar sigma c = match kind sigma c with
-| Var p -> p
+| Var (p, _) -> p
 | _ -> raise DestKO
 
 let destInd sigma c = match kind sigma c with
@@ -188,7 +188,7 @@ let destProj sigma c = match kind sigma c with
 | _ -> raise DestKO
 
 let destRef sigma c = let open GlobRef in match kind sigma c with
-  | Var x -> VarRef x, EInstance.empty
+  | Var (x, _) -> VarRef x, EInstance.empty
   | Const ((c,u), _) -> ConstRef c, u
   | Ind ((ind,u), _) -> IndRef ind, u
   | Construct (c,u) -> ConstructRef c, u

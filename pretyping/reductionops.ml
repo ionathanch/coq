@@ -937,10 +937,10 @@ let rec whd_state_gen ?csts ~refold ~tactic_mode flags env sigma =
       (match lookup_rel n env with
       | LocalDef (_,body,_) -> whrec Cst_stack.empty (lift n body, stack)
       | _ -> fold ())
-    | Var id when CClosure.RedFlags.red_set flags (CClosure.RedFlags.fVAR id) ->
+    | Var (id, _) when CClosure.RedFlags.red_set flags (CClosure.RedFlags.fVAR id) ->
       (match lookup_named id env with
       | LocalDef (_,body,_) ->
-	whrec (if refold then Cst_stack.add_cst (mkVar id) cst_l else cst_l) (body, stack)
+        whrec (if refold then Cst_stack.add_cst (mkVar id) cst_l else cst_l) (body, stack)
       | _ -> fold ())
     | Evar ev -> fold ()
     | Meta ev ->

@@ -336,7 +336,7 @@ let rec execute env sigma cstr =
     | Rel (n, _) ->
         sigma, judge_of_relative env n
 
-    | Var id ->
+    | Var (id, _) ->
         sigma, judge_of_variable env id
 
     | Const (c, _) ->

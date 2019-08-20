@@ -90,7 +90,7 @@ and relevance_of_term_extra env extra lft subs c =
     (match Esubst.expand_rel n subs with
      | Inl (k, f) -> relevance_of_fterm env extra (Esubst.el_liftn k lft) f
      | Inr (n, _) -> relevance_of_rel_extra env extra (Esubst.reloc_rel n lft))
-  | Var x -> relevance_of_var env x
+  | Var (x, _) -> relevance_of_var env x
   | Sort _ | Ind _ | Prod _ -> Sorts.Relevant (* types are always relevant *)
   | Cast (c, _, _) -> relevance_of_term_extra env extra lft subs c
   | Lambda ({binder_relevance=r;_}, _, bdy) ->

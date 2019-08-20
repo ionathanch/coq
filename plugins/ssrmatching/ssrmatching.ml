@@ -1112,7 +1112,7 @@ let interp_cpattern gl red redty = interp_pattern gl (T red) redty;;
 let interp_rpattern ~wit_ssrpatternarg gl red = interp_pattern ~wit_ssrpatternarg gl red None;;
 
 let id_of_pattern = function
-  | _, T t -> (match kind t with Var id -> Some id | _ -> None)
+  | _, T t -> (match kind t with Var (id, _) -> Some id | _ -> None)
   | _ -> None
 
 (* The full occurrence set *)
