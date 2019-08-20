@@ -19,12 +19,11 @@ let check_constant_declaration env kn cb =
   Flags.if_verbose Feedback.msg_notice (str "  checking cst:" ++ Constant.print kn);
   let cb_flags = cb.const_typing_flags in
   let env = Environ.set_typing_flags
-      {env.env_typing_flags with
-       check_guarded = cb_flags.check_guarded;
-       check_universes = cb_flags.check_universes;
-       conv_oracle = cb_flags.conv_oracle;}
-      env
-  in
+    { env.env_typing_flags with
+      check_guarded   = cb_flags.check_guarded;
+      check_sized     = cb_flags.check_sized;
+      check_universes = cb_flags.check_universes;
+      conv_oracle     = cb_flags.conv_oracle; } env in
   let poly, env =
     match cb.const_universes with
     | Monomorphic ctx ->
