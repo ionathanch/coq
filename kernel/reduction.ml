@@ -702,7 +702,7 @@ and convert_branches compare_annot l2r infos ci e1 e2 lft1 lft2 br1 br2 cuniv =
   Array.fold_right3 fold ci.ci_cstr_nargs br1 br2 cuniv
 
 let clos_gen_conv trans cv_pb l2r evars env univs t1 t2 =
-  let cstrnts = ref Constraints.empty in
+  let cstrnts = ref (Constraints.empty ()) in
   let reds = CClosure.RedFlags.red_add_transparent betaiotazeta trans in
   let infos = create_clos_infos ~evars reds env in
   let infos = {
