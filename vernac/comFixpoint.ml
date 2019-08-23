@@ -281,9 +281,12 @@ let declare_fixpoint_generic ?indexes ~scope ~poly ((fixnames,fixrs,fixdefs,fixt
   let vars, fixdecls, gidx =
     if not cofix then
       let env = Global.env() in
+      let indexes_opt = Array.of_list @@ List.map (function
+        | [n] -> Some n
+        |  _  -> None) indexes in
       let indexes = search_guard env indexes fixdecls in
-      let vars = Vars.universes_of_constr (mkFixOpt ((indexes,0),fixdecls)) in
-      let fixdecls = List.map_i (fun i _ -> mkFixOpt ((indexes,i),fixdecls)) 0 fixnames in
+      let vars = Vars.universes_of_constr (mkFix ((indexes_opt, 0),fixdecls)) in
+      let fixdecls = List.map_i (fun i _ -> mkFix ((indexes_opt, i),fixdecls)) 0 fixnames in
       vars, fixdecls, Some indexes
     else (* cofix *)
       let fixdecls = List.map_i (fun i _ -> mkCoFix (i,fixdecls)) 0 fixnames in
