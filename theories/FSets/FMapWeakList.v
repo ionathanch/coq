@@ -272,7 +272,7 @@ Proof.
  compute in H0; destruct H0.
  elim _x; apply X.eq_trans with y; auto.
  inversion_clear Hm.
- elim (IHt0 H2 H).
+ elim (IHl H2 H).
  exists e; auto.
 Qed.
 
