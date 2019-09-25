@@ -140,16 +140,17 @@ let check_inductive env mind mb =
   let { mind_packets; mind_record; mind_finite; mind_ntypes; mind_hyps;
         mind_nparams; mind_nparams_rec; mind_params_ctxt;
         mind_universes; mind_variance;
-        mind_private; mind_typing_flags; }
-    =
+        mind_private; mind_typing_flags; } =
     (* Locally set typing flags for further typechecking *)
     let mb_flags = mb.mind_typing_flags in
-    let env = Environ.set_typing_flags {env.env_typing_flags with check_guarded = mb_flags.check_guarded;
-                                                                  check_positive = mb_flags.check_positive;
-                                                                  check_universes = mb_flags.check_universes;
-                                                                  conv_oracle = mb_flags.conv_oracle} env in
-    Indtypes.check_inductive env mind entry
-  in
+    let env = Environ.set_typing_flags
+      { env.env_typing_flags with
+        check_guarded   = mb_flags.check_guarded;
+        check_sized     = mb_flags.check_sized;
+        check_positive  = mb_flags.check_positive;
+        check_universes = mb_flags.check_universes;
+        conv_oracle     = mb_flags.conv_oracle } env in
+    Indtypes.check_inductive env mind entry in
   let check = check mind in
 
   Array.iter2 (check_packet env mind) mb.mind_packets mind_packets;
