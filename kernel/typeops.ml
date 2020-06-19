@@ -112,19 +112,9 @@ let type_of_relative env n =
   with Not_found ->
     error_unbound_rel env n
 
-let stage_vars_in_relative env n =
-  try env |> lookup_rel n |> RelDecl.get_value |> Option.map count_annots
-  with Not_found ->
-    error_unbound_rel env n
-
 (* Type of variables *)
 let type_of_variable env id =
   try named_type id env
-  with Not_found ->
-    error_unbound_var env id
-
-let stage_vars_in_variable env id =
-  try env |> named_body id |> Option.map count_annots
   with Not_found ->
     error_unbound_var env id
 
@@ -172,15 +162,6 @@ let type_of_constant_in env (kn,_u as cst) =
   let cb = lookup_constant kn env in
   let cstrnts = check_hyps_inclusion env (GlobRef.ConstRef kn) cb.const_hyps in
   constant_type_in env cst, cstrnts
-
-let stage_vars_in_constant env (kn, _) =
-  let flags = Environ.typing_flags env in
-  if flags.Declarations.check_sized then
-    let cb = lookup_constant kn env in
-    match cb.const_body with
-    | Def c -> Some (count_annots @@ Mod_subst.force_constr c)
-    | _ -> None
-  else None
 
 (* Type of a lambda-abstraction. *)
 
@@ -557,24 +538,26 @@ let rec execute env stg cstrnt cstr =
       stg, cstrnt, cstr, type_of_sort s
 
     | Rel (n, _) ->
-      let numvars = stage_vars_in_relative env n in
-      let annots, stg = next_annots numvars stg in
-      stg, cstrnt, mkRelA n annots, type_of_relative env n
+      let svar, stg = if evaluable_rel n env
+        then let svar, stg = next_svar stg in Some svar, stg
+        else None, stg in
+      stg, cstrnt, mkRelA n svar, type_of_relative env n
 
     | Var (id, _) ->
-      let numvars = stage_vars_in_variable env id in
-      let s, stg = next stg in
-      let t = annotate_glob s (type_of_variable env id) in
-      let annots, stg = next_annots numvars stg in
-      stg, cstrnt, mkVarA id annots, t
+      let t = type_of_variable env id in
+      let svar, stg = if evaluable_named id env
+        then let svar, stg = next_svar stg in Some svar, stg
+        else None, stg in
+      stg, cstrnt, mkVarA id svar, t
 
-    | Const (c, _) ->
-      let numvars = stage_vars_in_constant env c in
+    | Const (kn, _ as c, _) ->
       let s, stg = next stg in
       let t, cstrnt' = type_of_constant env c in
       let t = annotate_glob s t in
-      let annots, stg = next_annots numvars stg in
-      stg, union cstrnt cstrnt', mkConstUA c annots, t
+      let svar, stg = if evaluable_constant kn env
+        then let svar, stg = next_svar stg in Some svar, stg
+        else None, stg in
+      stg, union cstrnt cstrnt', mkConstUA c svar, t
 
     | Proj (p, c) ->
       let stg, cstrnt, c', ct = execute env stg cstrnt c in
@@ -772,7 +755,7 @@ let check_wellformed_universes env c =
 let infer env constr =
   let () = check_wellformed_universes env constr in
   let stg, _, constr_sized, t_sized = execute env State.init (empty ()) constr in
-  let constr = erase_infty constr_sized in
+  let constr = constr_sized in
   let t = erase_glob (get_pos_vars stg) t_sized in
   make_judge constr t
 

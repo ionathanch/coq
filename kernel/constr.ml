@@ -90,9 +90,11 @@ type pconstructor = constructor puniverses
 
 (* [Var] is used for named variables and [Rel] for variables as
    de Bruijn indices. *)
+(* Because it's only meaningful for Const/Rel/Var to have either
+   stage variable or None, using Annot.ot might not make sense *)
 type ('constr, 'types, 'sort, 'univs) kind_of_term =
-  | Rel       of int * Annot.ts
-  | Var       of Id.t * Annot.ts
+  | Rel       of int * SVar.t option
+  | Var       of Id.t * SVar.t option
   | Meta      of metavariable
   | Evar      of 'constr pexistential
   | Sort      of 'sort
@@ -101,7 +103,7 @@ type ('constr, 'types, 'sort, 'univs) kind_of_term =
   | Lambda    of Name.t binder_annot * 'types * 'constr
   | LetIn     of Name.t binder_annot * 'constr * 'types * 'constr
   | App       of 'constr * 'constr array
-  | Const     of (Constant.t * 'univs) * Annot.ts
+  | Const     of (Constant.t * 'univs) * SVar.t option
   | Ind       of (inductive * 'univs) * Annot.t
   | Construct of (constructor * 'univs)
   | Case      of case_info * 'constr * 'constr * 'constr array
@@ -134,7 +136,7 @@ let rels =
     mkRel  9;mkRel 10;mkRel 11;mkRel 12;mkRel 13;mkRel 14;mkRel 15;mkRel 16|]
 
 let mkRel n = if 0<n && n<=16 then rels.(n-1) else Rel (n, None)
-let mkRelA n ans = Rel (n, ans)
+let mkRelA n svar = Rel (n, svar)
 
 (* Construct a type *)
 let mkSProp  = Sort Sorts.sprop
@@ -178,7 +180,7 @@ let in_punivs a = (a, Univ.Instance.empty)
 (* Constructs a constant *)
 let mkConst c = Const ((in_punivs c), None)
 let mkConstU c = Const (c, None)
-let mkConstUA c ans = Const (c, ans)
+let mkConstUA c svar = Const (c, svar)
 
 (* Constructs an applied projection *)
 let mkProj (p,c) = Proj (p,c)
@@ -241,7 +243,7 @@ let mkMeta  n =  Meta n
 
 (* Constructs a Variable named id *)
 let mkVar id = Var (id, None)
-let mkVarA id ans = Var (id, ans)
+let mkVarA id svar = Var (id, svar)
 
 let mkRef (gr,u) = let open GlobRef in match gr with
   | ConstRef c -> mkConstU (c,u)
@@ -821,33 +823,10 @@ let map_with_binders g f l c0 = match kind c0 with
 
 (** fold-type functions on stage annotations of constrs *)
 
-let rec count_annots cstr =
-  match cstr with
-  | Rel (_, la) -> List.length (Option.default [] la)
-  | Var (_, la) -> List.length (Option.default [] la)
-  | Cast (c, _, _)
-  | Lambda (_, _, c) ->
-    count_annots c
-  | LetIn (_, b, _, c) ->
-    count_annots b + count_annots c
-  | Const (_, la) -> List.length (Option.default [] la)
-  | Ind _ -> 1
-  | Case (_, _, c, lf) ->
-    Array.fold_left (fun count c -> count + count_annots c) (count_annots c) lf
-  | Fix (_, (_, _, bl))
-  | CoFix (_, (_, _, bl)) ->
-    Array.fold_left (fun count c -> count + count_annots c) 0 bl
-  | _ ->
-    fold (fun count c -> count + count_annots c) 0 cstr
-
 let rec collect_annots c =
   match c with
-  | Rel (_, la) | Var (_, la) | Const (_, la) ->
-    let collect vars = function
-      | Stage (StageVar (na, _)) -> SVars.add na vars
-      | _ -> vars in
-    List.fold_left collect SVars.empty (Option.default [] la)
-  | Ind (_, Stage (StageVar (na, _))) -> SVars.add na SVars.empty
+  | Ind (_, Stage (StageVar (na, _))) ->
+    SVars.add na SVars.empty
   | _ -> fold (fun vars c -> SVars.union vars (collect_annots c)) SVars.empty c
 
 let rec any_annot f c =
@@ -858,17 +837,17 @@ let rec any_annot f c =
 (** map-type functions on stage annotations of constrs *)
 
 let rec map_annots
-  (f : pinductive -> Annot.t -> Annot.t)
-  (g : Annot.t list -> Annot.t list) cstr =
+  (f : Annot.t -> Annot.t)
+  (g : SVar.t option -> SVar.t option) cstr =
   match cstr with
-  | Rel (n, Some la) ->
-    let la' = g la in
-    if la == la' then cstr else
-    mkRelA n (Some la')
-  | Var (n, Some la) ->
-    let la' = g la in
-    if la == la' then cstr else
-    mkVarA n (Some la')
+  | Rel (n, s) ->
+    let s' = g s in
+    if s == s' then cstr else
+    mkRelA n s'
+  | Var (n, s) ->
+    let s' = g s in
+    if s == s' then cstr else
+    mkVarA n s'
   | Cast (c, k, t) ->
     let c' = map_annots f g c in
     if c == c' then cstr else
@@ -882,13 +861,13 @@ let rec map_annots
     let c' = map_annots f g c in
     if b == b' && c == c' then cstr else
     mkLetIn (n, b', t, c')
-  | Const (c, Some la) ->
-    let la' = g la in
-    if la == la' then cstr else
-    mkConstUA c (Some la')
+  | Const (c, s) ->
+    let s' = g s in
+    if s == s' then cstr else
+    mkConstUA c s
   | Ind (iu, a) ->
-    let a' = f iu a in
-    if a' == a then cstr else
+    let a' = f a in
+    if a == a' then cstr else
     mkIndUS iu a'
   | Case (ci, p, c, lf) ->
     let c' = map_annots f g c in
@@ -905,62 +884,61 @@ let rec map_annots
     mkCoFix (ln, (nl, tl, bl'))
   | _ -> map (map_annots f g) cstr
 
-let make_annots_list annot la =
-  List.make (List.length la) annot
-
 let erase =
-  let f _ a =
+  let f a =
     match a with
     | Empty -> a
     | _ -> Empty in
-  map_annots f (make_annots_list Empty)
+  map_annots f (const None)
 
 let erase_infty =
-  let f _ a =
+  let f a =
     match a with
     | Stage Infty -> a
     | _ -> infty in
-  map_annots f (make_annots_list infty)
+  map_annots f (const None)
 
 let erase_glob vars =
-  let f _ a =
+  let f a =
     match a with
     | Stage (StageVar (na, _))
       when mem na vars -> Glob
     | Stage Infty -> a
     | _ -> infty in
-  map_annots f (make_annots_list infty)
+  map_annots f (const None)
 
 let erase_star vars =
-  let f _ a =
+  let f a =
     match a with
     | Stage (StageVar (na, _))
       when SVars.mem na vars -> Star
     | Empty -> a
     | _ -> Empty in
-  map_annots f (make_annots_list Empty)
+  map_annots f (const None)
 
-let annotate_fresh annots =
-  let annots_ref = ref annots in
-  let f _ _ =
-    let annots = !annots_ref in
-    annots_ref := List.tl annots;
-    List.hd annots in
-  let g la =
-    let annots = !annots_ref in
-    let la, annots = List.chop (List.length la) annots in
-    annots_ref := annots; la in
+let annotate_fresh svar =
+  let f a =
+    match a, svar with
+    | _, None -> infty
+    | Stage (StageVar (hd, sz)), Some tl ->
+      Stage (StageVar (SVar.cons hd tl, sz))
+    | _ -> a in
+  let g s =
+    match s, svar with
+    | _, None -> None
+    | None, _ -> None
+    | Some hd, Some tl -> Some (SVar.cons hd tl) in
   map_annots f g
 
 let annotate_glob s =
-  let f _ a =
+  let f a =
     match a with
     | Glob -> s
     | _ -> a in
   map_annots f identity
 
 let annotate_succ vars =
-  let f _ a =
+  let f a =
     match a with
     | Stage (StageVar (na, _))
       when mem na vars -> hat a
@@ -1023,18 +1001,14 @@ let compare_head_gen_leq_with_cstrnts kind1 kind2 leq_universes leq_sorts leq_an
     where their bodies will have the annotations substituted in,
     and we properly create stage annotation constraints, which would be
     covariant for inductive types and contravariant for coinductive. *)
-  let eq_annots ans1 ans2 = match ans1, ans2 with
-    | None, _ -> true
-    | _, None -> true
-    | Some ans1, Some ans2
-      when Int.equal (List.length ans1) (List.length ans2) ->
-      List.for_all (fun (a1, a2) -> Annot.equal a1 a2) @@ List.combine ans1 ans2
-    | _, _ -> false in
+  let eq_annot a1 a2 = match a1, a2 with
+    | Some a1, Some a2 -> SVar.equal a1 a2
+    | _ -> true in
   match kind_nocast_gen kind1 t1, kind_nocast_gen kind2 t2 with
   | Cast _, _ | _, Cast _ -> assert false (* kind_nocast *)
-  | Rel (n1, ans1), Rel (n2, ans2) -> Int.equal n1 n2 && eq_annots ans1 ans2
+  | Rel (n1, a1), Rel (n2, a2) -> Int.equal n1 n2 && eq_annot a1 a2
   | Meta m1, Meta m2 -> Int.equal m1 m2
-  | Var (id1, ans1), Var (id2, ans2) -> Id.equal id1 id2 && eq_annots ans1 ans2
+  | Var (id1, a1), Var (id2, a2) -> Id.equal id1 id2 && eq_annot a1 a2
   | Int i1, Int i2 -> Uint63.equal i1 i2
   | Float f1, Float f2 -> Float64.equal f1 f2
   | Sort s1, Sort s2 -> leq_sorts s1 s2
@@ -1048,9 +1022,9 @@ let compare_head_gen_leq_with_cstrnts kind1 kind2 leq_universes leq_sorts leq_an
     leq (nargs+len) c1 c2 && Array.equal_norefl (eq 0) l1 l2
   | Proj (p1,c1), Proj (p2,c2) -> Projection.equal p1 p2 && eq 0 c1 c2
   | Evar (e1,l1), Evar (e2,l2) -> Evar.equal e1 e2 && List.equal (eq 0) l1 l2
-  | Const ((c1,u1), ans1), Const ((c2,u2), ans2) ->
+  | Const ((c1,u1), _a1), Const ((c2,u2), _a2) ->
     (* The args length currently isn't used but may as well pass it. *)
-    Constant.equal c1 c2 && leq_universes (GlobRef.ConstRef c1) nargs u1 u2 && eq_annots ans1 ans2
+    Constant.equal c1 c2 && leq_universes (GlobRef.ConstRef c1) nargs u1 u2 (* && eq_annot a1 a2 *) (* TODO: Why does this break things? *)
   | Ind ((c1,u1), s1), Ind ((c2,u2), s2) ->
     eq_ind c1 c2 && leq_universes (GlobRef.IndRef c1) nargs u1 u2 && leq_annot c1 s1 s2
   | Construct (c1,u1), Construct (c2,u2) ->
@@ -1387,12 +1361,15 @@ let sh_instance = Univ.Instance.share
 
 (* [hashcons hash_consing_functions constr] computes an hash-consed
    representation for [constr] using [hash_consing_functions] on
-   leaves. *)
+   leaves.
+   Do NOT hash stage annotations. Opaque definitions will use hashes
+   to compare constrs; since they aren't unfolded, stage annotations
+   should not matter during comparisons. *)
 let hashcons (sh_sort,sh_ci,sh_construct,sh_ind,sh_con,sh_na,sh_id) =
   let rec hash_term t =
     match t with
-      | Var (i, ans) ->
-        (Var ((sh_id i), ans), combinesmall 1 (combine (Id.hash i) (Annot.hashAns ans)))
+      | Var (i, s) ->
+        (Var ((sh_id i), s), combinesmall 1 (Id.hash i))
       | Sort s ->
         (Sort (sh_sort s), combinesmall 2 (Sorts.hash s))
       | Cast (c, k, t) ->
@@ -1419,14 +1396,14 @@ let hashcons (sh_sort,sh_ci,sh_construct,sh_ind,sh_con,sh_na,sh_id) =
       | Evar (e,l) ->
         let l, hl = hash_list_array l in
         (Evar (e,l), combinesmall 8 (combine (Evar.hash e) hl))
-      | Const ((c,u), ans) ->
+      | Const ((c,u), s) ->
         let c' = sh_con c in
         let u', hu = sh_instance u in
-        (Const ((c', u'), ans), combinesmall 9 (combine3 (Constant.SyntacticOrd.hash c) hu (Annot.hashAns ans)))
-      | Ind ((ind,u), stg) ->
+        (Const ((c', u'), s), combinesmall 9 (combine (Constant.SyntacticOrd.hash c) hu))
+      | Ind ((ind,u), s) ->
         let u', hu = sh_instance u in
-        (Ind ((sh_ind ind, u'), stg),
-         combinesmall 10 (combine3 (ind_syntactic_hash ind) hu (Annot.hash stg)))
+        (Ind ((sh_ind ind, u'), s),
+         combinesmall 10 (combine3 (ind_syntactic_hash ind) hu (Annot.hash s)))
       | Construct (c,u) ->
         let u', hu = sh_instance u in
         (Construct (sh_construct c, u'),
@@ -1455,8 +1432,8 @@ let hashcons (sh_sort,sh_ci,sh_construct,sh_ind,sh_con,sh_na,sh_id) =
         (CoFix (ln,(lna,tl,bl)), combinesmall 14 h)
       | Meta n ->
         (t, combinesmall 15 n)
-      | Rel (n, ans) ->
-        (t, combinesmall 16 (combine n (Annot.hashAns ans)))
+      | Rel (n, _) ->
+        (t, combinesmall 16 n)
       | Proj (p,c) ->
         let c, hc = sh_rec c in
         let p' = Projection.hcons p in
@@ -1633,16 +1610,11 @@ let debug_print_fix pr_constr ((t,i),(lna,tl,bl)) =
            cut() ++ str":=" ++ pr_constr bd) (Array.to_list fixl)) ++
          str"}")
 
-let debug_print_annots ans =
+let debug_print_annot a =
   let open Pp in
-  let open Annot in
-  match ans with
+  match a with
   | None -> mt ()
-  | Some [] -> str "[]"
-  | Some ans ->
-    str "[" ++
-      List.fold_left (fun s annot -> s ++ str ";" ++ pr annot) (pr @@ List.hd ans) (List.tl ans) ++
-    str "]"
+  | Some a -> SVar.pr a
 
 let pr_puniverses p u =
   if Univ.Instance.is_empty u then p
@@ -1651,9 +1623,9 @@ let pr_puniverses p u =
 let rec debug_print c =
   let open Pp in
   match kind c with
-  | Rel (n, ans) -> str "#"++int n ++debug_print_annots ans
+  | Rel (n, a) -> str "#" ++ int n ++ str "^" ++ debug_print_annot a
   | Meta n -> str "Meta(" ++ int n ++ str ")"
-  | Var (id, ans) -> Id.print id ++ debug_print_annots ans
+  | Var (id, a) -> Id.print id ++ str "^" ++ debug_print_annot a
   | Sort s -> Sorts.debug_print s
   | Cast (c,_, t) -> hov 1
       (str"(" ++ debug_print c ++ cut() ++
@@ -1677,10 +1649,10 @@ let rec debug_print c =
   | Evar (e,l) -> hov 1
       (str"Evar#" ++ int (Evar.repr e) ++ str"{" ++
        prlist_with_sep spc debug_print l ++str"}")
-  | Const ((c,u), ans) -> str"Cst(" ++
-      pr_puniverses (Constant.debug_print c) u ++
-      debug_print_annots ans ++ str ")"
-  | Ind (((sp,i),u), stg) -> str"Ind(" ++ pr_puniverses (MutInd.print sp ++ str"," ++ int i) u ++ str"," ++ Annot.pr stg ++ str")"
+  | Const ((c,u), a) -> str"Cst(" ++
+      pr_puniverses (Constant.debug_print c) u ++ str "," ++
+      debug_print_annot a ++ str ")"
+  | Ind (((sp,i),u), s) -> str"Ind(" ++ pr_puniverses (MutInd.print sp ++ str"," ++ int i) u ++ str"," ++ Annot.pr s ++ str")"
   | Construct (((sp,i),j),u) ->
       str"Constr(" ++ pr_puniverses (MutInd.print sp ++ str"," ++ int i ++ str"," ++ int j) u ++ str")"
   | Proj (p,c) -> str"Proj(" ++ Constant.debug_print (Projection.constant p) ++ str"," ++ bool (Projection.unfolded p) ++ debug_print c ++ str")"

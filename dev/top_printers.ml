@@ -276,9 +276,9 @@ let cast_kind_display k =
 
 let constr_display csr =
   let rec term_display c = match kind c with
-  | Rel (n, ans) -> "Rel("^(string_of_int n)^","^(annot_list_display ans)^")"
+  | Rel (n, s) -> "Rel("^(string_of_int n)^","^(Option.cata Stages.SVar.show "" s)^")"
   | Meta n -> "Meta("^(string_of_int n)^")"
-  | Var (id, ans) -> "Var("^(Id.to_string id)^","^(annot_list_display ans)^")"
+  | Var (id, s) -> "Var("^(Id.to_string id)^","^(Option.cata Stages.SVar.show "" s)^")"
   | Sort s -> "Sort("^(sort_display s)^")"
   | Cast (c,k, t) ->
       "Cast("^(term_display c)^","^(cast_kind_display k)^","^(term_display t)^")"
@@ -291,9 +291,9 @@ let constr_display csr =
       ^(term_display t)^","^(term_display c)^")"
   | App (c,l) -> "App("^(term_display c)^","^(array_display l)^")\n"
   | Evar (e,l) -> "Evar("^(Pp.string_of_ppcmds (Evar.print e))^","^(array_display (Array.of_list l))^")"
-  | Const ((c,u), ans) -> "Const("^(Constant.to_string c)^","^(universes_display u)^","^(annot_list_display ans)^")"
-  | Ind (((sp,i),u), stg) ->
-      "MutInd("^(MutInd.to_string sp)^","^(string_of_int i)^","^(universes_display u)^","^(Stages.Annot.show stg)^")"
+  | Const ((c,u), s) -> "Const("^(Constant.to_string c)^","^(universes_display u)^","^(Option.cata Stages.SVar.show "" s)^")"
+  | Ind (((sp,i),u), s) ->
+      "MutInd("^(MutInd.to_string sp)^","^(string_of_int i)^","^(universes_display u)^","^(Stages.Annot.show s)^")"
   | Construct (((sp,i),j),u) ->
       "MutConstruct(("^(MutInd.to_string sp)^","^(string_of_int i)^"),"
       ^","^(universes_display u)^(string_of_int j)^")"
@@ -342,16 +342,6 @@ let constr_display csr =
     Array.fold_right (fun x i -> level_display x; (string_of_int !cnt)^(if not(i="")
         then (" "^i) else "")) (Instance.to_array l) ""
 
-  and annot_list_display ans =
-    let open Stages.Annot in
-    match ans with
-    | None -> ""
-    | Some [] -> "[]"
-    | Some ans ->
-      "[" ^
-      List.fold_left (fun str a -> str ^ ", " ^ show a) (show @@ List.hd ans) (List.tl ans)
-      ^ "]"
-
   and name_display x = match x.binder_name with
     | Name id -> "Name("^(Id.to_string id)^")"
     | Anonymous -> "Anonymous"
@@ -365,9 +355,9 @@ open Format;;
 
 let print_pure_constr csr =
   let rec term_display c = match Constr.kind c with
-  | Rel (n, ans) -> print_string "#"; print_int n; annot_list_display ans
+  | Rel (n, s) -> print_string "#"; print_int n; svar_display s
   | Meta n -> print_string "Meta("; print_int n; print_string ")"
-  | Var (id, ans) -> print_string (Id.to_string id); annot_list_display ans
+  | Var (id, s) -> print_string (Id.to_string id); svar_display s
   | Sort s -> sort_display s
   | Cast (c,_, t) -> open_hovbox 1;
       print_string "("; (term_display c); print_cut();
@@ -398,22 +388,22 @@ let print_pure_constr csr =
   | Evar (e,l) -> print_string "Evar#"; print_int (Evar.repr e); print_string "{";
       List.iter (fun x -> print_space (); box_display x) l;
       print_string"}"
-  | Const ((c,u), ans) -> print_string "Cons(";
+  | Const ((c,u), s) -> print_string "Cons(";
       sp_con_display c;
       print_string ","; universes_display u;
-      print_string ","; annot_list_display ans;
+      print_string ","; svar_display s;
       print_string ")"
   | Proj (p,c') -> print_string "Proj(";
       sp_con_display (Projection.constant p);
       print_string ",";
       box_display c';
       print_string ")"
-  | Ind (((sp,i),u), stg) ->
+  | Ind (((sp,i),u), s) ->
       print_string "Ind(";
       sp_display sp;
       print_string ","; print_int i;
       print_string ","; universes_display u;
-      print_string ","; annot_display stg;
+      print_string ","; annot_display s;
       print_string ")"
   | Construct (((sp,i),j),u) ->
       print_string "Constr(";
@@ -472,17 +462,9 @@ let print_pure_constr csr =
 
   and annot_display a = print_space (); pp (Stages.Annot.pr a)
 
-  and annot_list_display ans =
-    let open Stages.Annot in
-    print_space ();
-    match ans with
-    | None -> ()
-    | Some [] -> print_string "[]";
-    | Some ans ->
-      print_string "[";
-      pp (pr (List.hd ans));
-      List.iter (fun a -> print_string ";"; pp (pr a)) (List.tl ans);
-      print_string "]"
+  and svar_display = function
+  | Some s -> print_space (); pp (Stages.SVar.pr s)
+  | None -> ()
 
   and sort_display = function
     | SProp -> print_string "SProp"

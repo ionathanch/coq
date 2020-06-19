@@ -52,33 +52,42 @@
     e.g. List^α1 Nat ≤ List^α2 ⟹ α1 ⊑ α2
 *)
 
+module SVar :
+sig
+  type t
+  val equal : t -> t -> bool
+  val cons : t -> t -> t
+  val hash : t -> int
+  val pr : t -> Pp.t
+  val show : t -> string
+end
+
 module SVars :
 sig
   type t
-  type var = int
+  type elt = SVar.t
   val empty : t
   val is_empty : t -> bool
-  val add : var -> t -> t
-  val mem : var -> t -> bool
-  val of_list : var list -> t
+  val add : elt -> t -> t
+  val mem : elt -> t -> bool
+  val of_list : elt list -> t
   val union : t -> t -> t
   val union_list : t list -> t
   val inter : t -> t -> t
   val diff : t -> t -> t
-  val fold : (var -> 'a -> 'a) -> t -> 'a -> 'a
+  val fold : (elt -> 'a -> 'a) -> t -> 'a -> 'a
   val pr : t -> Pp.t
 end
 
 module Stage :
 sig
-  type t = Infty | StageVar of SVars.var * int
+  type t = Infty | StageVar of SVar.t * int
   val compare : t -> t -> int
 end
 
 module Annot :
 sig
   type t = Empty | Star | Glob | Stage of Stage.t
-  type ts = t list option
   val infty : t
   val hat : t -> t
   val compare : t -> t -> int
@@ -86,7 +95,6 @@ sig
   val pr : t -> Pp.t
   val show : t -> string
   val hash : t -> int
-  val hashAns : ts -> int
 end
 
 module State :
@@ -99,7 +107,7 @@ sig
   val get_pos_vars : t -> SVars.t
   val remove_pos_vars : SVars.t -> t -> t
   val next : ?s:Annot.t -> t -> Annot.t * t
-  val next_annots : int option -> t -> Annot.t list option * t
+  val next_svar : t -> SVar.t * t
   val pr : t -> Pp.t
 end
 
@@ -121,9 +129,9 @@ sig
   val to_graph : Constraints.t -> g
   val of_graph : g -> Constraints.t
 
-  val contains : g -> SVars.var -> SVars.var -> bool
-  val sup : g -> SVars.var -> SVars.t
-  val sub : g -> SVars.var -> SVars.t
+  val contains : g -> SVar.t -> SVar.t -> bool
+  val sup : g -> SVar.t -> SVars.t
+  val sub : g -> SVar.t -> SVars.t
   val bellman_ford : g -> SVars.t
 
   exception RecCheckFailed of Constraints.t * SVars.t * SVars.t
@@ -131,5 +139,5 @@ sig
   val downward : g -> SVars.t -> SVars.t
   val upward   : g -> SVars.t -> SVars.t
 
-  val rec_check : SVars.var -> SVars.t -> SVars.t -> Constraints.t -> Constraints.t
+  val rec_check : SVar.t -> SVars.t -> SVars.t -> Constraints.t -> Constraints.t
 end

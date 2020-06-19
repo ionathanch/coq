@@ -11,7 +11,7 @@ in the Coq repository, but they are generally as follows (for Ubuntu):
 To build the Coq toplevel (REPL):
   1. `./configure -profile devel` (N.B. this turns warnings into errors)
   2. `make coqbinaries` (for native code) or `make byte` (for bytecode; faster)
-  3. `make COQUSERFLAGS="-set 'Sized Typing'" coqlib` (libraries; slow)
+  3. `make coqlib` (libraries; slow)
     Note that currently (as of 18 October 2019), not all Coq libraries are able
     to be compiled. Allow the compilation to proceed as far as it can. To
     compile specific libraries, run `make <path>.vo`. For instance, the Strings
@@ -93,6 +93,89 @@ Fixpoint quicksort l :=
     (quicksort (filter nat (fun x => (leb x hd)) tl))
     (cons hd (quicksort (filter nat (fun x => negb (leb x hd)) tl)))
   end.
+
+(**
+
+Require Import List.
+Require Import Nat.
+Parameter A: Type.
+
+Fixpoint map (f: A -> A) l :=
+match l with
+| nil => nil
+| hd :: tl => (f hd) :: (map f tl)
+end.
+
+Fixpoint filter (p: nat -> bool) l :=
+match l with
+| nil => nil
+| hd :: tl =>
+  let tl' := filter p tl in
+  if (p hd) then hd :: tl' else tl'
+end.
+
+Fixpoint qsort l :=
+match l with
+| nil => nil
+| hd :: tl =>
+  let left := filter (fun n => n <=? hd) tl in
+  let right := filter (fun n => hd <? n) tl in
+  (qsort left) ++ hd :: (qsort right)
+end.
+
+Assum A: Type.
+
+Def map: (A -> A) -> list A :=
+fix {2} map': (A -> A) -> list A -> list A :=
+  𝜆f: A -> A. 𝜆l: list A.
+  case {𝜆_: list A. list A} l of
+  | nil => nil
+  | cons => 𝜆hd: A. 𝜆tl. list A.
+    cons (f hd) (map' f tl)
+  end.
+
+Def map: (A -> A) -> listᶥ A -> listᶥ A:=
+fix {2} map': (A -> A) -> list* A -> list* A := [
+  𝜆f: A -> A. 𝜆l: list A. [
+    case {𝜆_: list A. list^s+1 A} [l]_{list^s+1 A} of
+    | nil => [nil]_{list^s+1 A}
+    | cons => [𝜆hd: A. 𝜆tl. list A. [
+        cons (f hd) [map' f tl]_{list^s A}
+      ]_{list^s+1 A}
+    ]_{A -> list^s A -> list^s+1 A}
+    end.
+  ]_{list^s+1 A}
+]_{(A -> A) -> list^s+1 A -> list^s+1 A}
+
+Def filter: (nat -> bool) -> list nat -> list nat :=
+fix {2} filter': (nat -> bool) -> list nat -> list nat :=
+  𝜆p: nat -> bool. 𝜆l: list nat.
+  case {𝜆_: list nat. list nat} l of
+  | nil => nil
+  | cons => 𝜆hd: nat. 𝜆tl: list nat.
+    let tl': list nat := filter' p tl in
+    if (p hd) then cons hd tl' else tl'
+  end.
+
+Def filter: (nat -> bool) -> listᶥ nat -> listᶥ nat := [
+  fix {2} filter': (nat -> bool) -> list* nat -> list* nat := [
+    𝜆p: nat -> bool. 𝜆l: list nat. [
+      case {𝜆_: list nat. list^s+1 nat} [l]_{list^s+1 nat} of
+      | nil => [nil]_{list^s+1 nat}
+      | cons => [
+        𝜆hd: nat. 𝜆tl: list nat. [
+          let tl': list nat := [filter' p tl]_{list^s nat} in [
+            if (p hd) then [cons hd tl']_{list^s+1 nat}
+            else [tl']_{list^s nat}
+          ]_{list^s+1 nat}
+        ]_{list^s+1 nat}
+      ]_{nat -> list^s nat -> list^s+1 nat}
+      end.
+    ]_{list^s+1 nat}
+  ]_{list^s+1 nat}
+]_{(nat -> bool) -> list^s+1 nat -> list^s+1 nat}
+
+**)
 
 (* GCD *)
 

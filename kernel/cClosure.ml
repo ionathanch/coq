@@ -336,7 +336,7 @@ type fconstr = {
 and fterm =
   | FRel of int
   | FAtom of constr (* Metas and Sorts *)
-  | FFlex of table_key * Annot.t list option
+  | FFlex of table_key * SVar.t option
   | FInd of pinductive * Annot.t
   | FConstruct of pconstructor
   | FApp of fconstr * fconstr array
@@ -446,12 +446,12 @@ let lift_fconstr k f =
 let lift_fconstr_vect k v =
   if Int.equal k 0 then v else Array.Fun1.map lft_fconstr k v
 
-let clos_rel e i ans =
+let clos_rel e i s =
   match expand_rel i e with
     | Inl(n,mt) -> lift_fconstr n mt
     | Inr(k,None) -> {mark=mark Norm Unknown; term= FRel k}
     | Inr(k,Some p) ->
-        lift_fconstr (k-p) {mark=mark Red Unknown;term=FFlex(RelKey p, ans)}
+        lift_fconstr (k-p) {mark=mark Red Unknown;term=FFlex(RelKey p, s)}
 
 (* since the head may be reducible, we might introduce lifts of 0 *)
 let compact_stack head stk =
@@ -494,11 +494,11 @@ let destFLambda clos_fun t =
    Makes variable access much faster *)
 let mk_clos e t =
   match kind t with
-    | Rel (i, ans) -> clos_rel e i ans
-    | Var (x, ans) -> {mark = mark Red Unknown; term = FFlex (VarKey x, ans) }
-    | Const (c, ans) -> {mark = mark Red Unknown; term = FFlex (ConstKey c, ans) }
+    | Rel (i, s) -> clos_rel e i s
+    | Var (x, s) -> {mark = mark Red Unknown; term = FFlex (VarKey x, s) }
+    | Const (c, s) -> {mark = mark Red Unknown; term = FFlex (ConstKey c, s) }
     | Meta _ | Sort _ ->  {mark = mark Norm KnownR; term = FAtom t }
-    | Ind (kn, stg) -> {mark = mark Norm KnownR; term = FInd (kn, stg)}
+    | Ind (kn, s) -> {mark = mark Norm KnownR; term = FInd (kn, s)}
     | Construct kn -> {mark = mark Cstr Unknown; term = FConstruct kn }
     | Int i -> {mark = mark Cstr Unknown; term = FInt i}
     | Float f -> {mark = mark Cstr Unknown; term = FFloat f}
@@ -518,7 +518,7 @@ let mk_clos_vect env v = match v with
   [|mk_clos env v0; mk_clos env v1; mk_clos env v2; mk_clos env v3|]
 | v -> Array.Fun1.map mk_clos env v
 
-let ref_value_cache ({ i_cache = cache; _ }) tab ref oannots =
+let ref_value_cache ({ i_cache = cache; _ }) tab ref svaro =
   try
     KeyTable.find tab ref
   with Not_found ->
@@ -540,9 +540,7 @@ let ref_value_cache ({ i_cache = cache; _ }) tab ref oannots =
           | VarKey id -> assoc_defined id cache.i_env
           | ConstKey cst -> constant_value_in cache.i_env cst
         in
-        let body = match oannots with
-        | Some annots -> annotate_fresh annots body
-        | None -> body in
+        let body = annotate_fresh svaro body in
         Def (inject body)
       with
       | NotEvaluableConst (IsPrimitive op) (* Const *) -> Primitive op
@@ -556,11 +554,11 @@ let ref_value_cache ({ i_cache = cache; _ }) tab ref oannots =
 let rec to_constr lfts v =
   match v.term with
     | FRel i -> mkRel (reloc_rel i lfts)
-    | FFlex (RelKey p, ans) -> mkRelA (reloc_rel p lfts) ans
-    | FFlex (VarKey x, ans) -> mkVarA x ans
+    | FFlex (RelKey p, s) -> mkRelA (reloc_rel p lfts) s
+    | FFlex (VarKey x, s) -> mkVarA x s
     | FAtom c -> exliftn lfts c
-    | FFlex (ConstKey op, ans) -> mkConstUA op ans
-    | FInd (op, stg) -> mkIndUS op stg
+    | FFlex (ConstKey op, s) -> mkConstUA op s
+    | FInd (op, s) -> mkIndUS op s
     | FConstruct op -> mkConstructU op
     | FCaseT (ci,p,c,ve,env) ->
       if is_subs_id env && is_lift_id lfts then
@@ -633,10 +631,10 @@ let rec to_constr lfts v =
     | FLOCKED -> assert false (*mkVar(Id.of_string"_LOCK_")*)
 
 and subst_constr subst c = match [@ocaml.warning "-4"] Constr.kind c with
-| Rel (i, ans) ->
+| Rel (i, s) ->
   begin match expand_rel i subst with
   | Inl (k, lazy v) -> Vars.lift k v
-  | Inr (m, _) -> mkRelA m ans
+  | Inr (m, _) -> mkRelA m s
   end
 | _ ->
   Constr.map_with_binders Esubst.subs_lift subst_constr subst c
@@ -948,7 +946,7 @@ and knht info e t stk =
         knht info e t (ZcaseT(ci, p, br, e)::stk)
     | Fix fx -> knh info { mark = mark Cstr Unknown; term = FFix (fx, e) } stk
     | Cast(a,_,_) -> knht info e a stk
-    | Rel (n, ans) -> knh info (clos_rel e n ans) stk
+    | Rel (n, s) -> knh info (clos_rel e n s) stk
     | Proj (p, c) -> knh info { mark = mark Red Unknown; term = FProj (p, mk_clos e c) } stk
     | (Ind _|Const _|Construct _|Var _|Meta _ | Sort _ | Int _|Float _) -> (mk_clos e t, stk)
     | CoFix cfx -> { mark = mark Cstr Unknown; term = FCoFix (cfx,e) }, stk
@@ -1261,20 +1259,20 @@ let rec knr info tab m stk =
       (match get_args n tys f e stk with
           Inl e', s -> knit info tab e' f s
         | Inr lam, s -> (lam,s))
-  | FFlex(ConstKey (kn,_ as c), annots) when red_set info.i_flags (fCONST kn) ->
-      (match ref_value_cache info tab (ConstKey c) annots with
+  | FFlex(ConstKey (kn,_ as c), s) when red_set info.i_flags (fCONST kn) ->
+      (match ref_value_cache info tab (ConstKey c) s with
         | Def v -> kni info tab v stk
         | Primitive op when check_native_args op stk ->
           let rargs, a, nargs, stk = get_native_args1 op c stk in
           kni info tab a (Zprimitive(op,c,rargs,nargs)::stk)
         | Undef _ | OpaqueDef _ | Primitive _ -> (set_norm m; (m,stk)))
-  | FFlex(VarKey id, annots) when red_set info.i_flags (fVAR id) ->
-      (match ref_value_cache info tab (VarKey id) annots with
+  | FFlex(VarKey id, s) when red_set info.i_flags (fVAR id) ->
+      (match ref_value_cache info tab (VarKey id) s with
         | Def v -> kni info tab v stk
         | Primitive _ -> assert false
         | OpaqueDef _ | Undef _ -> (set_norm m; (m,stk)))
-  | FFlex(RelKey k, annots) when red_set info.i_flags fDELTA ->
-      (match ref_value_cache info tab (RelKey k) annots with
+  | FFlex(RelKey k, s) when red_set info.i_flags fDELTA ->
+      (match ref_value_cache info tab (RelKey k) s with
         | Def v -> kni info tab v stk
         | Primitive _ -> assert false
         | OpaqueDef _ | Undef _ -> (set_norm m; (m,stk)))
